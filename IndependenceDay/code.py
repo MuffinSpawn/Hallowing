@@ -41,6 +41,37 @@ class ScrollingRedWhitBlue(Animation):
         if self.__lead_pixel >= self.__strip.n:
             self.__lead_pixel = 0
 
+class PulsingRedWhitBlue(Animation):
+    RED = (255, 0, 0)
+    BLUE = (0, 0, 255)
+    WHITE = (255, 255, 255)
+
+    def __init__(self, strip):
+        self.__strip = strip
+
+        self.COLORS = [self.RED, self.WHITE, self.BLUE]
+        self.INCREMENT_MAGNITUDE = 0.02
+        self.BRIGHTNESS_MAX = 0.4
+        self.__brightness = 0
+        self.__increment = self.INCREMENT_MAGNITUDE
+        self.__color_index = 0
+
+    def step(self):
+        self.__strip.brightness = self.__brightness
+        self.__strip.fill(self.COLORS[self.__color_index])
+        self.__strip.show()
+        self.__brightness += self.__increment
+        if self.__brightness > self.BRIGHTNESS_MAX:
+            self.__brightness = self.BRIGHTNESS_MAX
+            self.__increment = -self.__increment
+        elif self.__brightness < 0:
+            self.__brightness = 0
+            self.__increment = -self.__increment
+            self.__color_index += 1
+            if self.__color_index >= 3:
+                self.__color_index = 0
+
+
 class WavingFlag(Animation):
     def __init__(self, display):
         self.__display = display
@@ -85,9 +116,12 @@ def main():
     BRIGHTNESS_INCREMENT = 0.01
 
     brightness = 0.01
-    strip_animation = ScrollingRedWhitBlue(strip)
+    strip_animations = [ScrollingRedWhitBlue(strip), PulsingRedWhitBlue(strip)]
     display_animation = WavingFlag(board.DISPLAY)
     display_animation.step()
+    animation_index = 0
+    strip_animation = strip_animations[animation_index]
+    start_time = time.time()
     while True:
         if increase_brightness_pad.value:
             brightness += BRIGHTNESS_INCREMENT
@@ -100,6 +134,13 @@ def main():
         if strip.brightness != brightness:
             strip.brightness = brightness
 
+        lapsed_time = time.time() - start_time
+        if lapsed_time > 20:
+            start_time = time.time()
+            animation_index += 1
+            if animation_index >= len(strip_animations):
+                animation_index = 0
+            strip_animation = strip_animations[animation_index]
         strip_animation.step()
 
 if __name__ == '__main__':
