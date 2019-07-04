@@ -1,4 +1,5 @@
 import os
+import random
 import time
 import math
 
@@ -107,18 +108,44 @@ class RainbowExplosion(Animation):
             else:
                 self.COLORS[index] = mix(BLUE, PURPLE, (index-2*third_range)/third_range)
 
-        self.__rainbow_index = 0
-        self.__stage = 0
+        self.__stage = int(0)
+        self.__index = 0
 
     def step(self):
-        # self.__strip[:] = self.COLORS
-        self.__strip[self.__rainbow_index] = self.COLORS[self.__rainbow_index]
-        self.__strip.show()
+        if self.__stage == 0:
+            self.__strip[self.__index] = WHITE
+            self.__strip[self.__strip.n-self.__index-1] = WHITE
+            if self.__index > 0:
+                self.__strip[self.__index-1] = (0,0,0)
+                self.__strip[self.__strip.n-self.__index] = (0,0,0)
+            self.__strip.show()
+            self.__index += 1
+            if self.__index >= self.__strip.n/2:
+                self.__index = 0
+                self.__strip.fill(0)
+                self.__strip.show()
+                self.__stage += 1
+        elif self.__stage == 1:
+            self.__strip[random.randint(0, self.__strip.n-1)] = self.COLORS[random.randint(0, self.__strip.n-1)]
+            self.__strip.show()
+            self.__index += 1
+            if self.__index >= 2*self.__strip.n:
+                self.__index = 0
+                self.__strip.fill(0)
+                self.__strip.show()
+                self.__stage += 1
+        # elif self.__stage == 2:
+        #     self.__strip[self.__index] = self.COLORS[self.__index]
+        #     self.__strip.show()
 
-        self.__rainbow_index += 1
-        if self.__rainbow_index >= self.__strip.n:
-            self.__rainbow_index = 0
-            self.__strip.fill(0)
+        #     self.__index += 1
+        #     if self.__index >= self.__strip.n:
+        #         self.__index = 0
+        #         self.__strip.fill(0)
+        #         self.__strip.show()
+        #         self.__stage += 1
+        if self.__stage > 1:
+            self.__stage = 0
 
 
 class WavingFlag(Animation):
