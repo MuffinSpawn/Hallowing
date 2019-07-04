@@ -9,24 +9,46 @@ import neopixel
 import terminalio
 import touchio
 
+
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+BLUE = (0, 0, 255)
+PURPLE = (255, 0, 255)
+WHITE = (255, 255, 255)
+
+def mix(color_1, color_2, weight_2):
+    """
+    Blend between two colors with a given ratio.
+    @param color_1:  first color, as an (r,g,b) tuple
+    @param color_2:  second color, as an (r,g,b) tuple
+    @param weight_2: Blend weight (ratio) of second color, 0.0 to 1.0
+    @return: (r,g,b) tuple, blended color
+    """
+    if weight_2 < 0.0:
+        weight_2 = 0.0
+    elif weight_2 > 1.0:
+        weight_2 = 1.0
+    weight_1 = 1.0 - weight_2
+    return (int(color_1[0] * weight_1 + color_2[0] * weight_2),
+            int(color_1[1] * weight_1 + color_2[1] * weight_2),
+            int(color_1[2] * weight_1 + color_2[2] * weight_2))
+
 class Animation:
     # @abstractmethod
     def step(self):
         pass
 
 class ScrollingRedWhitBlue(Animation):
-    RED = (255, 0, 0)
-    BLUE = (0, 0, 255)
-    WHITE = (255, 255, 255)
-
     def __init__(self, strip):
         self.__strip = strip
+        self.__strip.fill(0)
+        self.__strip.show()
 
         self.COLORS = [0]*self.__strip.n
         for index in range(10):
-            self.COLORS[index] = self.RED
-            self.COLORS[index+10] = self.WHITE
-            self.COLORS[index+20] = self.BLUE
+            self.COLORS[index] = RED
+            self.COLORS[index+10] = WHITE
+            self.COLORS[index+20] = BLUE
 
         self.__lead_pixel = 0
 
@@ -42,14 +64,12 @@ class ScrollingRedWhitBlue(Animation):
             self.__lead_pixel = 0
 
 class PulsingRedWhitBlue(Animation):
-    RED = (255, 0, 0)
-    BLUE = (0, 0, 255)
-    WHITE = (255, 255, 255)
-
     def __init__(self, strip):
         self.__strip = strip
+        self.__strip.fill(0)
+        self.__strip.show()
 
-        self.COLORS = [self.RED, self.WHITE, self.BLUE]
+        self.COLORS = [RED, WHITE, BLUE]
         self.INCREMENT_MAGNITUDE = 0.02
         self.BRIGHTNESS_MAX = 0.4
         self.__brightness = 0
@@ -70,6 +90,35 @@ class PulsingRedWhitBlue(Animation):
             self.__color_index += 1
             if self.__color_index >= 3:
                 self.__color_index = 0
+
+class RainbowExplosion(Animation):
+    def __init__(self, strip):
+        self.__strip = strip
+        self.__strip.fill(0)
+        self.__strip.show()
+
+        self.COLORS = [0]*self.__strip.n
+        third_range = self.__strip.n / 3.0
+        for index in range(self.__strip.n):
+            if index < int(third_range):
+                self.COLORS[index] = mix(RED, GREEN, index/third_range)
+            elif index < int(2*third_range):
+                self.COLORS[index] = mix(GREEN, BLUE, (index-third_range)/third_range)
+            else:
+                self.COLORS[index] = mix(BLUE, PURPLE, (index-2*third_range)/third_range)
+
+        self.__rainbow_index = 0
+        self.__stage = 0
+
+    def step(self):
+        # self.__strip[:] = self.COLORS
+        self.__strip[self.__rainbow_index] = self.COLORS[self.__rainbow_index]
+        self.__strip.show()
+
+        self.__rainbow_index += 1
+        if self.__rainbow_index >= self.__strip.n:
+            self.__rainbow_index = 0
+            self.__strip.fill(0)
 
 
 class WavingFlag(Animation):
@@ -116,11 +165,11 @@ def main():
     BRIGHTNESS_INCREMENT = 0.01
 
     brightness = 0.01
-    strip_animations = [ScrollingRedWhitBlue(strip), PulsingRedWhitBlue(strip)]
+    strip_animations = [ScrollingRedWhitBlue, PulsingRedWhitBlue, RainbowExplosion]
     display_animation = WavingFlag(board.DISPLAY)
     display_animation.step()
     animation_index = 0
-    strip_animation = strip_animations[animation_index]
+    strip_animation = strip_animations[animation_index](strip)
     start_time = time.time()
     while True:
         if increase_brightness_pad.value:
@@ -140,7 +189,7 @@ def main():
             animation_index += 1
             if animation_index >= len(strip_animations):
                 animation_index = 0
-            strip_animation = strip_animations[animation_index]
+            strip_animation = strip_animations[animation_index](strip)
         strip_animation.step()
 
 if __name__ == '__main__':
