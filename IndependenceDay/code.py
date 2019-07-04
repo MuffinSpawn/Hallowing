@@ -2,9 +2,11 @@ import os
 import time
 import math
 
+from adafruit_display_text import label
 import board
 import displayio
 import neopixel
+import terminalio
 import touchio
 
 class Animation:
@@ -45,21 +47,28 @@ class WavingFlag(Animation):
         self.__sprite = displayio.Group()
         self.__display.show(self.__sprite)
         self.__tiles = []
-        filenames = [filename for filename in os.listdir('images/') if filename.endswith('.bmp')].sort()
-        for filename in filenames:
-            with open(filename, "rb") as file:
-                image = displayio.OnDiskBitmap(file)
-                tile = displayio.TileGrid(image, pixel_shader=displayio.ColorConverter())
-                self.__tiles.append(tile)
+        self.__filenames = ['images/'+filename for filename in os.listdir('images/') if filename.endswith('.bmp')]
+        self.__filenames.sort()
         self.__index = 0
         self.__lead_pixel = 0
 
     def step(self):
-        self.__sprite.append(self.__tiles[self.__index])
-        self.__display.wait_for_frame()
-        self.__sprite.pop()
+        # text_area = label.Label(terminalio.FONT, text='Loading {}'.format(filename))
+        # text_area.x = 10
+        # text_area.y = 10
+        # self.__display.show(text_area)        # for filename in filenames:
+
+        sprite = displayio.Group()
+        with open(self.__filenames[self.__index], "rb") as file:
+            image = displayio.OnDiskBitmap(file)
+            tile = displayio.TileGrid(image, pixel_shader=displayio.ColorConverter())
+            sprite.append(tile)
+            self.__display.show(sprite)
+            self.__display.wait_for_frame()
+        # if len(self.__sprite) > 1:
+        #     self.__sprite.pop()
         self.__index += 1
-        if self.__index >= len(self.__tiles):
+        if self.__index >= len(self.__filenames):
             self.__index = 0
 
 def main():
@@ -78,6 +87,7 @@ def main():
     brightness = 0.01
     strip_animation = ScrollingRedWhitBlue(strip)
     display_animation = WavingFlag(board.DISPLAY)
+    display_animation.step()
     while True:
         if increase_brightness_pad.value:
             brightness += BRIGHTNESS_INCREMENT
@@ -91,7 +101,6 @@ def main():
             strip.brightness = brightness
 
         strip_animation.step()
-        display_animation.step()
 
 if __name__ == '__main__':
     main()
